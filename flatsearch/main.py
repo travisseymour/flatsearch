@@ -1,4 +1,4 @@
-def foo(bar: str) -> str:
+def main(bar: str) -> bool:
     """Summary line.
 
     Extended description of function.
@@ -10,7 +10,7 @@ def foo(bar: str) -> str:
         Description of return value
     """
 
-    return bar
+    return bool(bar)
 
 
 if __name__ == "__main__":  # pragma: no cover
