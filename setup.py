@@ -4,7 +4,7 @@ from pathlib import Path
 
 from setuptools import find_packages, setup
 
-from version_tools import bump_version
+from version_bump import bump_version
 
 PYTHON_VERSION = ">=3.9"
 

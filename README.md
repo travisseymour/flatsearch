@@ -13,6 +13,9 @@ Search for apps using flatpak and then install result with one click
 flatsearch comic
 ```
 
+![asciinema cast of flatsearch usage](media/flatsearch.svg)
+(https://asciinema.org/a/A3FPc7QbYHjRoOk20GJVYbiPR)
+
 ## Installation
 
 Preparation
