@@ -21,7 +21,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
-
+import os
 import subprocess
 import sys
 
@@ -78,7 +78,7 @@ def main():
     table = Table(title="Flatpak Search Results")
 
     table.add_column("", style="white", no_wrap=True)
-    table.add_column("Name", style="cyan", no_wrap=True, min_width=25)
+    table.add_column("Name", style="cyan", no_wrap=False, min_width=25)
     table.add_column("Description", style="magenta", no_wrap=False)
     table.add_column("App ID", style="yellow", no_wrap=True)
     table.add_column("Version", style="green", no_wrap=True)
@@ -111,7 +111,8 @@ def main():
 
     if response:
         try:
-            subprocess.Popen(["flatpak", "install", str(app_id)], start_new_session=True)
+            # this should completely replace python process with a new one
+            os.execvp("flatpak",["flatpak", "install", str(app_id)] )
         except FileNotFoundError:
             print("Error: The 'flatpak' command was not found. Please ensure Flatpak is installed.")
             sys.exit(1)
