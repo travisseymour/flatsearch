@@ -1,13 +1,42 @@
 # flatsearch
 
-[![Release](https://img.shields.io/github/v/release/travisseymour/flatsearch)](https://img.shields.io/github/v/release/travisseymour/flatsearch)
-[![Build status](https://img.shields.io/github/actions/workflow/status/travisseymour/flatsearch/main.yml?branch=main)](https://github.com/travisseymour/flatsearch/actions/workflows/main.yml?query=branch%3Amain)
-[![codecov](https://codecov.io/gh/travisseymour/flatsearch/branch/main/graph/badge.svg)](https://codecov.io/gh/travisseymour/flatsearch)
 [![Commit activity](https://img.shields.io/github/commit-activity/m/travisseymour/flatsearch)](https://img.shields.io/github/commit-activity/m/travisseymour/flatsearch)
 [![License](https://img.shields.io/github/license/travisseymour/flatsearch)](https://img.shields.io/github/license/travisseymour/flatsearch)
 
 Search for apps using flatpak and then install result with one click
 
 - **Github repository**: <https://github.com/travisseymour/flatsearch/>
-- **Documentation** <https://travisseymour.github.io/flatsearch/>
+
+## Usage
+
+```bash
+flatsearch comic
+```
+
+## Installation
+
+Preparation
+
+- Make sure you have Python 3.9+ installed
+- Make sure you have <b>PipX</b> installed: <https://pipx.pypa.io/stable/>
+
+Installation
+
+```bash
+pipx install git+https://github.com/travisseymour/flatsearch.git
+```
+
+Upgrade
+
+```bash
+pipx upgrade flatsearch
+```
+
+Removal
+
+```bash
+pipx uninstall flatsearch
+```
+
+<mark>NOTICE: This tool has only tested on Linux (Debian-type, Pop_OS! in particular) with the flatpak tool installed.</mark>
 
