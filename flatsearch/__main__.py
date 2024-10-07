@@ -110,8 +110,14 @@ def main():
     response = Confirm.ask(f"Ask flatpak to install '{app_name}' ({app_id})?")
 
     if response:
-        # starting in new session because we are about to quit
-        subprocess.Popen(["flatpak", "install", str(app_id)], start_new_session=True)
+        try:
+            subprocess.Popen(["flatpak", "install", str(app_id)], start_new_session=True)
+        except FileNotFoundError:
+            print("Error: The 'flatpak' command was not found. Please ensure Flatpak is installed.")
+            sys.exit(1)
+        except Exception as e:
+            print(f"An unexpected error occurred: {e}")
+            sys.exit(1)
     else:
         print('[yellow]No Install Indicated.[/yellow]')
         print('Done.')
