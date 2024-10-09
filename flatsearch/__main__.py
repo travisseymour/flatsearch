@@ -45,7 +45,7 @@ def parse_flatpak_output(output):
         parts = line.split("\t")  # Split into a maximum of 6 parts
         if len(parts) == 4:
             name, description, app_id, version = parts
-            apps.append([str(row), name, description, app_id, version])
+            apps.append([str(row + 1), name, description, app_id, version])
     return apps
 
 
@@ -74,6 +74,10 @@ def main():
 
     text = result.stdout
     apps_data = parse_flatpak_output(text)
+
+    if not apps_data:
+        print(f"[magenta]No results found for search term '{term}'[/magenta]:")
+        return
 
     table = Table(title="Flatpak Search Results")
 
