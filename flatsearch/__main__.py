@@ -109,7 +109,7 @@ def main():
         # they entered a number, so it doesn't have a .strip attribute
         ...
 
-    row_num, app_name, app_desc, app_id, app_version = apps_data[user_input]
+    row_num, app_name, app_desc, app_id, app_version = apps_data[user_input-1]
 
     response = Confirm.ask(f"Ask flatpak to install '{app_name}' ({app_id})?")
 
