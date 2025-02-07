@@ -9,14 +9,16 @@ This tool uses the Textual framework to display a scrollable table of search res
 
 ## Usage
 
+flatsearch [SEARCH TERM]
+
 ```bash
 flatsearch comic
 ```
 
 <mark>NOTICE:</mark> This tool has only tested on Linux (Debian-type, Pop_OS! in particular) with the flatpak tool installed.
 
-![asciinema cast of flatsearch usage](media/flatsearch.svg)
-(https://asciinema.org/a/A3FPc7QbYHjRoOk20GJVYbiPR)
+![asciinema cast of flatsearch usage](media/flatsearch.gif)
+
 
 ## Installation
 

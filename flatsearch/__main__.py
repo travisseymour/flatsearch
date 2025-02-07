@@ -1,21 +1,10 @@
 #!/usr/bin/env python3
 """
-FlatSearch. A commandline tool used to search for apps using flatpak and then install result with a single click
+FlatSearch – A Textual-based TUI for Flatpak search and install
 
-Copyright (C) 2024-2025 Travis L. Seymour, PhD
-
-This program is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with this program.  If not, see <http://www.gnu.org/licenses/>.
+This tool uses the Textual framework to display a scrollable table of search results from flatpak.
+Use the arrow keys to select an entry and press ENTER to choose an app.
+After exiting the TUI, you'll be prompted (via standard terminal input) to confirm the installation.
 """
 
 import os
@@ -23,26 +12,29 @@ import sys
 import asyncio
 
 from textual.app import App, ComposeResult
-from textual.widgets import Header, Footer, DataTable, Static
+from textual.widgets import Header, Footer, DataTable
 from textual.events import Key
+
+from flatsearch.version import get_version
 
 
 class FlatSearchApp(App):
     """
     This tool uses the Textual framework to display a scrollable table of search results from flatpak.
-    Use the arrow keys to select an entry and press ENTER to be prompted for installation.
+    Use the arrow keys to select an entry and press ENTER to choose an app.
     """
 
     BINDINGS = [
         ("q", "quit", "Quit"),
-        ("escape", "quit", "Quit"),  # Added binding for Escape key.
+        ("escape", "quit", "Quit"),
     ]
 
     def __init__(self, search_term: str, **kwargs):
         super().__init__(**kwargs)
-        self.title = "FlatSearch (press ENTER to choose highlighted row)"
+        self.title = f"FlatSearch v{get_version()} (press ENTER to choose highlighted row)"
         self.search_term = search_term
         self.apps_data = []  # Will hold list of search results
+        self.selected_app = None  # Will hold the selected app's row
 
     def compose(self) -> ComposeResult:
         yield Header()
@@ -73,13 +65,7 @@ class FlatSearchApp(App):
             self.exit(message=f"No results found for search term '{self.search_term}'.")
             return
 
-        # determine the description width
-        description_width = 50
-
-        # this would work, but DataTable doesn't render newlines.
-        # for row in self.apps_data:
-        #     # row[2] is the Description column.
-        #     row[2] = textwrap.fill(row[2], width=description_width)
+        description_width = 50  # Maximum width for the Description column
 
         # Get the DataTable widget and set it up.
         table: DataTable = self.query_one("#apps_table", DataTable)
@@ -113,8 +99,8 @@ class FlatSearchApp(App):
 
     async def on_key(self, event: Key) -> None:
         """
-        Listen for the ENTER key. When pressed, use the currently highlighted row
-        in the table to confirm installation.
+        Listen for the ENTER key. When pressed, store the currently highlighted row
+        and then exit the TUI.
         """
         if event.key == "enter":
             table: DataTable = self.query_one("#apps_table", DataTable)
@@ -122,49 +108,14 @@ class FlatSearchApp(App):
                 return  # Nothing is selected
 
             row_index = table.cursor_row
-            # Each row is: [number, name, description, app_id, version]
             try:
-                _, app_name, _, app_id, _ = self.apps_data[row_index]
+                # Each row is: [number, name, description, app_id, version]
+                self.selected_app = self.apps_data[row_index]
             except IndexError:
                 return
 
-            confirmed = await self.confirm_install(app_name, app_id)
-            if confirmed:
-                self.install_app(app_id)
-            else:
-                # Optionally, you could notify the user that installation was cancelled.
-                pass
-
-    async def confirm_install(self, app_name: str, app_id: str) -> bool:
-        """
-        Display a confirmation prompt at the bottom of the screen. Wait until the user
-        presses 'y' for Yes or 'n' for No.
-        """
-        prompt = Static(f"Install '{app_name}' ({app_id})? Press Y for Yes, N for No.", id="confirm_prompt")
-        # Dock the prompt at the bottom (above the Footer).
-        await self.view.dock(prompt, edge="bottom", size=3)
-
-        while True:
-            key_event = await self.wait_for(Key)
-            if key_event.key.lower() == "y":
-                prompt.remove()
-                return True
-            elif key_event.key.lower() == "n":
-                prompt.remove()
-                return False
-
-    def install_app(self, app_id: str) -> None:
-        """
-        Replace the current process with a call to 'flatpak install' for the selected app.
-        """
-        try:
-            os.execvp("flatpak", ["flatpak", "install", app_id])
-        except FileNotFoundError:
-            print("Error: flatpak command not found.")
-            sys.exit(1)
-        except Exception as e:
-            print(f"Unexpected error: {e}")
-            sys.exit(1)
+            # Exit the TUI; control returns to main() after app.run()
+            self.exit()
 
 
 def main():
@@ -173,7 +124,27 @@ def main():
         sys.exit(1)
     search_term = " ".join(sys.argv[1:])
     app = FlatSearchApp(search_term)
-    app.run()
+    app.run()  # Run the TUI; this call will return once self.exit() is called
+
+    # After exiting the TUI, check if the user selected an app.
+    if app.selected_app is not None:
+        # Each row is: [number, name, description, app_id, version]
+        _, app_name, _, app_id, _ = app.selected_app
+        # Use standard prompting to confirm installation.
+        confirm = input(f"Install '{app_name}' ({app_id})? (y/n): ")
+        if confirm.strip().lower().startswith("y"):
+            try:
+                os.execvp("flatpak", ["flatpak", "install", app_id])
+            except FileNotFoundError:
+                print("Error: flatpak command not found.")
+                sys.exit(1)
+            except Exception as e:
+                print(f"Unexpected error: {e}")
+                sys.exit(1)
+        else:
+            print("Installation cancelled.")
+    else:
+        print("No application was selected.")
 
 
 if __name__ == "__main__":
