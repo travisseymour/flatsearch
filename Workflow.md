@@ -1,0 +1,3 @@
+- manually change version in pyproject.toml,
+- commit
+- push

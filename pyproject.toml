@@ -1,0 +1,59 @@
+[build-system]
+requires = ["setuptools>=46.4.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "flatsearch"
+version = "2025.2.6.6"
+description="FlatSearch – A Textual-based TUI for Flatpak search and install"
+authors = [{ name = "Travis L. Seymour, PhD", email = "nogard@ucsc.edu" }]
+license = { file = "LICENSE" }
+readme = "README.md"
+requires-python = ">=3.10"
+keywords = ["flatpak", "linux", "installation", "utility", "utilities", "software"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+    "Operating System :: OS Independent"
+]
+dependencies = [
+    "rich>=13.9.4",
+    "textual>=1.0.0"
+]
+
+[project.urls]
+"Bug Tracker" = "https://github.com/travisseymour/flatsearch/issues"
+"Documentation" = "https://github.com/travisseymour/flatsearch#readme"
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "black>=23.1",
+    "ruff>=0.1",
+    "build>=0.10",
+    "check-manifest>=0.48",
+]
+
+[project.scripts]
+flatsearch = "flatsearch.__main__:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["flatsearch"]
+namespaces = false
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.package-data]
+flatsearch = ["py.typed"]
+
+[tool.black]
+line-length = 120
+
+[tool.ruff]
+line-length = 120
+lint.ignore = ["F821", "F841", "E722"]  # undefined name, assigned but unused variable, bare except
