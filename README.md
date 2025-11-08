@@ -9,16 +9,21 @@ This tool uses the Textual framework to display a scrollable table of search res
 
 ## Usage
 
-flatsearch [SEARCH TERM]
+flatsearch [SEARCH TERM] [OPTIONAL -y]
 
+If you do this, flatpak will prompt you to verify you really want to install any app you choose for installation.
 ```bash
 flatsearch comic
 ```
+```bash
+flatsearch comic -y
+```
+
+If you do this, flatpak will start installing any app you choose for installation.
 
 <mark>NOTICE:</mark> This tool has only tested on Linux (Debian-type, Pop_OS! in particular) with the flatpak tool installed.
 
 ![asciinema cast of flatsearch usage](media/flatsearch.gif)
-
 
 ## Installation
 
@@ -27,21 +32,20 @@ flatsearch comic
 1. Make sure you have [uv (preferred)](https://docs.astral.sh/uv/) or [PipX](https://pipx.pypa.io/stable/) installed.
 
 2. Make sure you have Python 3.9 or higher installed. If you need to install a version of Python, you can use `uv` to do this, for example:
-
+   
     To check to see which versions of Python you already have
-
-    ```bash
+   
+   ```bash
    uv python list
-    ```
-
+   ```
+   
     To install Python 3.11
-
-    ```bash
-    uv python install 3.11
-    ```
+   
+   ```bash
+   uv python install 3.11
+   ```
 
 ### Installation
-
 
 ```bash
 uv tool install git+https://github.com/travisseymour/flatsearch.git
@@ -76,6 +80,3 @@ or
 ```bash
 pipx uninstall flatsearch
 ```
-
-
-

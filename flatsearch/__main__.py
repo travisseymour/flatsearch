@@ -42,12 +42,13 @@ class FlatSearchApp(App):
         ("escape", "quit", "Quit"),
     ]
 
-    def __init__(self, search_term: str, **kwargs):
+    def __init__(self, search_term: str, assume_yes: bool = False, **kwargs):
         super().__init__(**kwargs)
         self.title = f"FlatSearch v{get_version()} (press ENTER to choose highlighted row)"
         self.search_term = search_term
-        self.apps_data = []  # Will hold list of search results
-        self.selected_app = None  # Will hold the selected app's row
+        self.assume_yes = assume_yes
+        self.apps_data = []      # Will hold list of search results
+        self.selected_app = None # Will hold the selected app's row
 
     def compose(self) -> ComposeResult:
         yield Header()
@@ -56,12 +57,15 @@ class FlatSearchApp(App):
 
     async def on_mount(self) -> None:
         """Called when the app starts. Run the flatpak search and build the table."""
-        # Execute the flatpak search command
-        args = self.search_term.split()
+        # Build the flatpak search command
+        args = ["flatpak", "search", "--columns=name,description,application,version"]
+        if self.assume_yes:
+            # -y is harmless for `search` but ensures consistency when the user passed it
+            args.append("-y")
+        # Split the search term into args (supports multi-word queries / extra filters)
+        args.extend(self.search_term.split())
+
         process = await asyncio.create_subprocess_exec(
-            "flatpak",
-            "search",
-            "--columns=name,description,application,version",
             *args,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
@@ -131,23 +135,45 @@ class FlatSearchApp(App):
             self.exit()
 
 
+def _parse_cli(argv: list[str]) -> tuple[str, bool]:
+    """
+    Extract -y/--assumeyes and return (search_term, assume_yes).
+    Keeps everything else as part of the search term.
+    """
+    assume_yes = False
+    filtered: list[str] = []
+    for a in argv:
+        if a in ("-y", "--assumeyes"):
+            assume_yes = True
+        else:
+            filtered.append(a)
+    return " ".join(filtered), assume_yes
+
+
 def main():
     if len(sys.argv) < 2:
-        print("Usage: flatsearch <search term>")
+        print("Usage: flatsearch [-y|--assumeyes] <search term>")
         sys.exit(1)
-    search_term = " ".join(sys.argv[1:])
-    app = FlatSearchApp(search_term)
+
+    # Parse CLI: detect -y/--assumeyes and remove it from the visible search term
+    search_term, assume_yes = _parse_cli(sys.argv[1:])
+
+    if not search_term.strip():
+        print("Usage: flatsearch [-y|--assumeyes] <search term>")
+        sys.exit(1)
+
+    app = FlatSearchApp(search_term, assume_yes=assume_yes)
     app.run()  # Run the TUI; this call will return once self.exit() is called
 
     # After exiting the TUI, check if the user selected an app.
     if app.selected_app is not None:
         # Each row is: [number, name, description, app_id, version]
         _, app_name, _, app_id, _ = app.selected_app
-        # Use standard prompting to confirm installation.
-        confirm = input(f"Install '{app_name}' ({app_id})? (y/n): ")
-        if confirm.strip().lower().startswith("y"):
+
+        if assume_yes:
+            # Non-interactive install when -y was provided
             try:
-                os.execvp("flatpak", ["flatpak", "install", app_id])
+                os.execvp("flatpak", ["flatpak", "install", "-y", app_id])
             except FileNotFoundError:
                 print("Error: flatpak command not found.")
                 sys.exit(1)
@@ -155,7 +181,19 @@ def main():
                 print(f"Unexpected error: {e}")
                 sys.exit(1)
         else:
-            print("Installation cancelled.")
+            # Interactive confirmation
+            confirm = input(f"Install '{app_name}' ({app_id})? (y/n): ")
+            if confirm.strip().lower().startswith("y"):
+                try:
+                    os.execvp("flatpak", ["flatpak", "install", app_id])
+                except FileNotFoundError:
+                    print("Error: flatpak command not found.")
+                    sys.exit(1)
+                except Exception as e:
+                    print(f"Unexpected error: {e}")
+                    sys.exit(1)
+            else:
+                print("Installation cancelled.")
     else:
         print("No application was selected.")
 
