@@ -23,6 +23,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 import os
 import sys
 import asyncio
+import argparse
 
 from textual.app import App, ComposeResult
 from textual.widgets import Header, Footer, DataTable
@@ -32,23 +33,14 @@ from flatsearch.version import get_version
 
 
 class FlatSearchApp(App):
-    """
-    This tool uses the Textual framework to display a scrollable table of search results from flatpak.
-    Use the arrow keys to select an entry and press ENTER to choose an app.
-    """
+    BINDINGS = [("q", "quit", "Quit"), ("escape", "quit", "Quit")]
 
-    BINDINGS = [
-        ("q", "quit", "Quit"),
-        ("escape", "quit", "Quit"),
-    ]
-
-    def __init__(self, search_term: str, assume_yes: bool = False, **kwargs):
+    def __init__(self, search_term: str, **kwargs):
         super().__init__(**kwargs)
         self.title = f"FlatSearch v{get_version()} (press ENTER to choose highlighted row)"
         self.search_term = search_term
-        self.assume_yes = assume_yes
-        self.apps_data = []      # Will hold list of search results
-        self.selected_app = None # Will hold the selected app's row
+        self.apps_data = []
+        self.selected_app = None
 
     def compose(self) -> ComposeResult:
         yield Header()
@@ -56,24 +48,19 @@ class FlatSearchApp(App):
         yield Footer()
 
     async def on_mount(self) -> None:
-        """Called when the app starts. Run the flatpak search and build the table."""
-        # Build the flatpak search command
-        args = ["flatpak", "search", "--columns=name,description,application,version"]
-        if self.assume_yes:
-            # -y is harmless for `search` but ensures consistency when the user passed it
-            args.append("-y")
-        # Split the search term into args (supports multi-word queries / extra filters)
-        args.extend(self.search_term.split())
-
+        """Run flatpak search and populate the table."""
+        cmd = [
+            "flatpak",
+            "search",
+            "--columns=name,description,application,version",
+            *self.search_term.split(),
+        ]
         process = await asyncio.create_subprocess_exec(
-            *args,
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE,
+            *cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
         )
         stdout, stderr = await process.communicate()
         if process.returncode != 0:
-            error_text = stderr.decode().strip()
-            self.exit(message=f"Error executing flatpak search:\n{error_text}")
+            self.exit(message=f"Error executing flatpak search:\n{stderr.decode().strip()}")
             return
 
         output = stdout.decode()
@@ -82,96 +69,72 @@ class FlatSearchApp(App):
             self.exit(message=f"No results found for search term '{self.search_term}'.")
             return
 
-        description_width = 50  # Maximum width for the Description column
-
-        # Get the DataTable widget and set it up.
         table: DataTable = self.query_one("#apps_table", DataTable)
-        table.cursor_type = "row"  # Allow row-by-row navigation.
+        table.cursor_type = "row"
         table.add_column("No.", width=4)
         table.add_column("Name", width=20)
-        table.add_column("Description", width=description_width)
+        table.add_column("Description", width=50)
         table.add_column("App ID", width=30)
         table.add_column("Version", width=10)
 
         for row in self.apps_data:
             table.add_row(*row)
 
-        # Focus the table so the user can navigate with arrow keys.
         table.focus()
 
     @staticmethod
     def parse_flatpak_output(output: str):
-        """
-        Parse the flatpak output (expected as tab-delimited lines with 4 fields) and
-        return a list of rows formatted for display.
-        """
         apps = []
         for row, line in enumerate(output.strip().splitlines()):
             parts = line.split("\t")
             if len(parts) == 4:
                 name, description, app_id, version = parts
-                # Prepend a serial number for display.
                 apps.append([str(row + 1), name, description, app_id, version])
         return apps
 
     async def on_key(self, event: Key) -> None:
-        """
-        Listen for the ENTER key. When pressed, store the currently highlighted row
-        and then exit the TUI.
-        """
         if event.key == "enter":
             table: DataTable = self.query_one("#apps_table", DataTable)
             if table.cursor_row is None:
-                return  # Nothing is selected
-
-            row_index = table.cursor_row
+                return
             try:
-                # Each row is: [number, name, description, app_id, version]
-                self.selected_app = self.apps_data[row_index]
+                self.selected_app = self.apps_data[table.cursor_row]
             except IndexError:
                 return
-
-            # Exit the TUI; control returns to main() after app.run()
             self.exit()
 
 
-def _parse_cli(argv: list[str]) -> tuple[str, bool]:
-    """
-    Extract -y/--assumeyes and return (search_term, assume_yes).
-    Keeps everything else as part of the search term.
-    """
-    assume_yes = False
-    filtered: list[str] = []
-    for a in argv:
-        if a in ("-y", "--assumeyes"):
-            assume_yes = True
-        else:
-            filtered.append(a)
-    return " ".join(filtered), assume_yes
+def parse_args(argv: list[str]):
+    parser = argparse.ArgumentParser(
+        prog="flatsearch",
+        description="Search Flatpak apps in a Textual TUI and optionally install the selected app.",
+    )
+    parser.add_argument(
+        "-y", "--assumeyes", action="store_true",
+        help="Assume 'yes' for installation prompts (applies to install only)."
+    )
+    # Everything after options is the search term; require at least one token
+    parser.add_argument(
+        "search", nargs="+", help="Search term and/or filters passed to 'flatpak search'."
+    )
+    args = parser.parse_args(argv)
+    return " ".join(args.search), args.assumeyes
 
 
 def main():
-    if len(sys.argv) < 2:
+    if len(sys.argv) == 1:
         print("Usage: flatsearch [-y|--assumeyes] <search term>")
         sys.exit(1)
 
-    # Parse CLI: detect -y/--assumeyes and remove it from the visible search term
-    search_term, assume_yes = _parse_cli(sys.argv[1:])
+    search_term, assume_yes = parse_args(sys.argv[1:])
 
-    if not search_term.strip():
-        print("Usage: flatsearch [-y|--assumeyes] <search term>")
-        sys.exit(1)
+    app = FlatSearchApp(search_term)
+    app.run()
 
-    app = FlatSearchApp(search_term, assume_yes=assume_yes)
-    app.run()  # Run the TUI; this call will return once self.exit() is called
-
-    # After exiting the TUI, check if the user selected an app.
     if app.selected_app is not None:
-        # Each row is: [number, name, description, app_id, version]
         _, app_name, _, app_id, _ = app.selected_app
-
         if assume_yes:
-            # Non-interactive install when -y was provided
+            # Non-interactive install
             try:
                 os.execvp("flatpak", ["flatpak", "install", "-y", app_id])
             except FileNotFoundError:
@@ -181,7 +144,6 @@ def main():
                 print(f"Unexpected error: {e}")
                 sys.exit(1)
         else:
-            # Interactive confirmation
             confirm = input(f"Install '{app_name}' ({app_id})? (y/n): ")
             if confirm.strip().lower().startswith("y"):
                 try:
