@@ -3,7 +3,7 @@
 [![Commit activity](https://img.shields.io/github/commit-activity/m/travisseymour/flatsearch)](https://img.shields.io/github/commit-activity/m/travisseymour/flatsearch)
 [![License](https://img.shields.io/github/license/travisseymour/flatsearch)](https://img.shields.io/github/license/travisseymour/flatsearch)
 
-This tool uses the Textual framework to display a scrollable table of search results from [flatpak](https://flatpak.org/). Use the arrow keys to select an entry and press ENTER to be prompted for installation.
+This tool displays a scrollable table of search results from [flatpak](https://flatpak.org/). Use the arrow keys to select an entry and press ENTER to be prompted for installation.
 
 - **Github repository**: <https://github.com/travisseymour/flatsearch/>
 
@@ -31,7 +31,7 @@ If you do this, flatpak will start installing any app you choose for installatio
 
 1. Make sure you have [uv (preferred)](https://docs.astral.sh/uv/) or [PipX](https://pipx.pypa.io/stable/) installed.
 
-2. Make sure you have Python 3.9 or higher installed. If you need to install a version of Python, you can use `uv` to do this, for example:
+2. Make sure you have Python 3.10 or higher installed. If you need to install a version of Python, you can use `uv` to do this, for example:
    
     To check to see which versions of Python you already have
    

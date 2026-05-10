@@ -13,3 +13,9 @@ format:
 	ruff check flatsearch --fix
 	ruff format flatsearch
 	black flatsearch
+
+# Run code quality checks (used by CI)
+check:
+	ruff check flatsearch
+	ruff format --check flatsearch
+	black --check flatsearch

@@ -58,12 +58,17 @@ class FlatSearchApp(App):
         process = await asyncio.create_subprocess_exec(
             *cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
         )
-        stdout, stderr = await process.communicate()
+        try:
+            stdout, stderr = await asyncio.wait_for(process.communicate(), timeout=30.0)
+        except asyncio.TimeoutError:
+            process.kill()
+            self.exit(message="Error: flatpak search timed out after 30 seconds.")
+            return
         if process.returncode != 0:
-            self.exit(message=f"Error executing flatpak search:\n{stderr.decode().strip()}")
+            self.exit(message=f"Error executing flatpak search:\n{stderr.decode('utf-8').strip()}")
             return
 
-        output = stdout.decode()
+        output = stdout.decode("utf-8")
         self.apps_data = self.parse_flatpak_output(output)
         if not self.apps_data:
             self.exit(message=f"No results found for search term '{self.search_term}'.")
@@ -85,11 +90,16 @@ class FlatSearchApp(App):
     @staticmethod
     def parse_flatpak_output(output: str):
         apps = []
+        skipped = 0
         for row, line in enumerate(output.strip().splitlines()):
             parts = line.split("\t")
             if len(parts) == 4:
                 name, description, app_id, version = parts
-                apps.append([str(row + 1), name, description, app_id, version])
+                apps.append([str(row + 1 - skipped), name, description, app_id, version])
+            else:
+                skipped += 1
+        if skipped > 0:
+            print(f"Warning: Skipped {skipped} malformed line(s) from flatpak output.", file=sys.stderr)
         return apps
 
     async def on_key(self, event: Key) -> None:
@@ -110,13 +120,13 @@ def parse_args(argv: list[str]):
         description="Search Flatpak apps in a Textual TUI and optionally install the selected app.",
     )
     parser.add_argument(
-        "-y", "--assumeyes", action="store_true",
-        help="Assume 'yes' for installation prompts (applies to install only)."
+        "-y",
+        "--assumeyes",
+        action="store_true",
+        help="Assume 'yes' for installation prompts (applies to install only).",
     )
     # Everything after options is the search term; require at least one token
-    parser.add_argument(
-        "search", nargs="+", help="Search term and/or filters passed to 'flatpak search'."
-    )
+    parser.add_argument("search", nargs="+", help="Search term and/or filters passed to 'flatpak search'.")
     args = parser.parse_args(argv)
     return " ".join(args.search), args.assumeyes
 
