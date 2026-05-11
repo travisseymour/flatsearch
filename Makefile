@@ -2,7 +2,7 @@
 # Install the package with development dependencies
 # alternative to `pip install -r requirements`
 install:
-	pip install .[dev] && pip uninstall flatsearch -y && make clean
+	pip install .[dev]
 
 # Clean up build artifacts
 clean:
@@ -12,10 +12,8 @@ clean:
 format:
 	ruff check flatsearch --fix
 	ruff format flatsearch
-	black flatsearch
 
 # Run code quality checks (used by CI)
 check:
 	ruff check flatsearch
 	ruff format --check flatsearch
-	black --check flatsearch

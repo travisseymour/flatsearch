@@ -9,19 +9,53 @@ This tool displays a scrollable table of search results from [flatpak](https://f
 
 ## Usage
 
-flatsearch [SEARCH TERM] [OPTIONAL -y]
+### Search and Install
 
-If you do this, flatpak will prompt you to verify you really want to install any app you choose for installation.
+```
+flatsearch [-y|--assumeyes] <search term>
+```
+
+Search for flatpak apps and optionally install a selected one.
+
 ```bash
 flatsearch comic
 ```
+
+This will prompt you to verify before installing any app you choose.
+
 ```bash
 flatsearch comic -y
 ```
 
-If you do this, flatpak will start installing any app you choose for installation.
+With `-y`, flatpak will start installing immediately without confirmation.
 
-<mark>NOTICE:</mark> This tool has only tested on Linux (Debian-type, Pop_OS! in particular) with the flatpak tool installed.
+### Uninstall
+
+```
+flatsearch uninstall [-y|--assumeyes] [filter term]
+```
+
+Display installed flatpak apps and uninstall a selected one.
+
+```bash
+flatsearch uninstall
+```
+
+Shows all installed flatpak apps in a table. Select one to uninstall.
+
+```bash
+flatsearch uninstall firefox
+```
+
+Filter the list to show only apps matching "firefox".
+
+```bash
+flatsearch uninstall -y firefox
+```
+
+With `-y`, skip the confirmation prompt before uninstalling.
+
+<mark>NOTICE:</mark> This tool has only tested on Linux Mint (Debian/Ubuntu base) with the flatpak tool installed.
 
 ![asciinema cast of flatsearch usage](media/flatsearch.gif)
 

@@ -30,6 +30,7 @@ from textual.widgets import Header, Footer, DataTable
 from textual.events import Key
 
 from flatsearch.version import get_version
+from flatsearch.uninstall import run_uninstall
 
 
 class FlatSearchApp(App):
@@ -114,7 +115,30 @@ class FlatSearchApp(App):
             self.exit()
 
 
-def parse_args(argv: list[str]):
+def parse_uninstall_args(argv: list[str]):
+    """Parse arguments for the uninstall subcommand."""
+    parser = argparse.ArgumentParser(
+        prog="flatsearch uninstall",
+        description="Uninstall a Flatpak application via TUI.",
+    )
+    parser.add_argument(
+        "-y",
+        "--assumeyes",
+        action="store_true",
+        help="Assume 'yes' for uninstallation prompts.",
+    )
+    parser.add_argument(
+        "filter",
+        nargs="*",
+        help="Optional filter term to match installed app names or IDs.",
+    )
+    args = parser.parse_args(argv)
+    args.command = "uninstall"
+    return args
+
+
+def parse_search_args(argv: list[str]):
+    """Parse arguments for the default search/install behavior."""
     parser = argparse.ArgumentParser(
         prog="flatsearch",
         description="Search Flatpak apps in a Textual TUI and optionally install the selected app.",
@@ -123,20 +147,47 @@ def parse_args(argv: list[str]):
         "-y",
         "--assumeyes",
         action="store_true",
-        help="Assume 'yes' for installation prompts (applies to install only).",
+        help="Assume 'yes' for installation prompts.",
     )
-    # Everything after options is the search term; require at least one token
-    parser.add_argument("search", nargs="+", help="Search term and/or filters passed to 'flatpak search'.")
+    parser.add_argument(
+        "search",
+        nargs="+",
+        help="Search term and/or filters passed to 'flatpak search'.",
+    )
     args = parser.parse_args(argv)
-    return " ".join(args.search), args.assumeyes
+    args.command = "search"
+    return args
+
+
+def parse_args(argv: list[str]):
+    """Route to appropriate parser based on first argument."""
+    if argv and argv[0] == "uninstall":
+        return parse_uninstall_args(argv[1:])
+    return parse_search_args(argv)
 
 
 def main():
     if len(sys.argv) == 1:
         print("Usage: flatsearch [-y|--assumeyes] <search term>")
+        print("       flatsearch uninstall [-y|--assumeyes] [filter term]")
         sys.exit(1)
 
-    search_term, assume_yes = parse_args(sys.argv[1:])
+    args = parse_args(sys.argv[1:])
+
+    # Handle uninstall subcommand
+    if args.command == "uninstall":
+        filter_term = " ".join(args.filter) if args.filter else ""
+        run_uninstall(filter_term, args.assumeyes)
+        return
+
+    # Default: search and install
+    if not args.search:
+        print("Usage: flatsearch [-y|--assumeyes] <search term>")
+        print("       flatsearch uninstall [-y|--assumeyes] [filter term]")
+        sys.exit(1)
+
+    search_term = " ".join(args.search)
+    assume_yes = args.assumeyes
 
     app = FlatSearchApp(search_term)
     app.run()
