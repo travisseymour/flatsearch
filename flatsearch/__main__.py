@@ -23,14 +23,20 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 import os
 import sys
 import asyncio
-import argparse
+from typing import Optional
 
+import typer
 from textual.app import App, ComposeResult
 from textual.widgets import Header, Footer, DataTable
 from textual.events import Key
 
 from flatsearch.version import get_version
-from flatsearch.uninstall import run_uninstall
+from flatsearch.uninstall import run_uninstall, run_list
+
+cli = typer.Typer(
+    help="FlatSearch - Search and install/uninstall Flatpak applications via TUI.",
+    add_completion=False,
+)
 
 
 class FlatSearchApp(App):
@@ -115,87 +121,39 @@ class FlatSearchApp(App):
             self.exit()
 
 
-def parse_uninstall_args(argv: list[str]):
-    """Parse arguments for the uninstall subcommand."""
-    parser = argparse.ArgumentParser(
-        prog="flatsearch uninstall",
-        description="Uninstall a Flatpak application via TUI.",
-    )
-    parser.add_argument(
-        "-y",
-        "--assumeyes",
-        action="store_true",
-        help="Assume 'yes' for uninstallation prompts.",
-    )
-    parser.add_argument(
-        "filter",
-        nargs="*",
-        help="Optional filter term to match installed app names or IDs.",
-    )
-    args = parser.parse_args(argv)
-    args.command = "uninstall"
-    return args
+@cli.command()
+def uninstall(
+    filter_term: Optional[list[str]] = typer.Argument(None, help="Optional filter to match installed app names or IDs."),
+    assumeyes: bool = typer.Option(False, "-y", "--assumeyes", help="Assume 'yes' for uninstallation prompts."),
+) -> None:
+    """Uninstall a Flatpak application via TUI."""
+    filter_str = " ".join(filter_term) if filter_term else ""
+    run_uninstall(filter_str, assumeyes)
 
 
-def parse_search_args(argv: list[str]):
-    """Parse arguments for the default search/install behavior."""
-    parser = argparse.ArgumentParser(
-        prog="flatsearch",
-        description="Search Flatpak apps in a Textual TUI and optionally install the selected app.",
-    )
-    parser.add_argument(
-        "-y",
-        "--assumeyes",
-        action="store_true",
-        help="Assume 'yes' for installation prompts.",
-    )
-    parser.add_argument(
-        "search",
-        nargs="+",
-        help="Search term and/or filters passed to 'flatpak search'.",
-    )
-    args = parser.parse_args(argv)
-    args.command = "search"
-    return args
+@cli.command("list")
+def list_apps(
+    filter_term: Optional[list[str]] = typer.Argument(None, help="Optional filter to match installed app names or IDs."),
+) -> None:
+    """List installed Flatpak applications (read-only)."""
+    filter_str = " ".join(filter_term) if filter_term else ""
+    run_list(filter_str)
 
 
-def parse_args(argv: list[str]):
-    """Route to appropriate parser based on first argument."""
-    if argv and argv[0] == "uninstall":
-        return parse_uninstall_args(argv[1:])
-    return parse_search_args(argv)
-
-
-def main():
-    if len(sys.argv) == 1:
-        print("Usage: flatsearch [-y|--assumeyes] <search term>")
-        print("       flatsearch uninstall [-y|--assumeyes] [filter term]")
-        sys.exit(1)
-
-    args = parse_args(sys.argv[1:])
-
-    # Handle uninstall subcommand
-    if args.command == "uninstall":
-        filter_term = " ".join(args.filter) if args.filter else ""
-        run_uninstall(filter_term, args.assumeyes)
-        return
-
-    # Default: search and install
-    if not args.search:
-        print("Usage: flatsearch [-y|--assumeyes] <search term>")
-        print("       flatsearch uninstall [-y|--assumeyes] [filter term]")
-        sys.exit(1)
-
-    search_term = " ".join(args.search)
-    assume_yes = args.assumeyes
+@cli.command()
+def search(
+    search_terms: list[str] = typer.Argument(..., help="Search term(s) passed to 'flatpak search'."),
+    assumeyes: bool = typer.Option(False, "-y", "--assumeyes", help="Assume 'yes' for installation prompts."),
+) -> None:
+    """Search and install Flatpak applications via TUI."""
+    search_term = " ".join(search_terms)
 
     app = FlatSearchApp(search_term)
     app.run()
 
     if app.selected_app is not None:
         _, app_name, _, app_id, _ = app.selected_app
-        if assume_yes:
-            # Non-interactive install
+        if assumeyes:
             try:
                 os.execvp("flatpak", ["flatpak", "install", "-y", app_id])
             except FileNotFoundError:
@@ -219,6 +177,11 @@ def main():
                 print("Installation cancelled.")
     else:
         print("No application was selected.")
+
+
+def main() -> None:
+    """Entry point for the CLI."""
+    cli()
 
 
 if __name__ == "__main__":

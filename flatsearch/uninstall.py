@@ -34,9 +34,13 @@ class FlatUninstallApp(App):
 
     BINDINGS = [("q", "quit", "Quit"), ("escape", "quit", "Quit")]
 
-    def __init__(self, filter_term: str = "", **kwargs):
+    def __init__(self, filter_term: str = "", read_only: bool = False, **kwargs):
         super().__init__(**kwargs)
-        self.title = f"FlatSearch Uninstall v{get_version()} (press ENTER to choose highlighted row)"
+        self.read_only = read_only
+        if read_only:
+            self.title = f"FlatSearch List v{get_version()} (press Q or ESC to quit)"
+        else:
+            self.title = f"FlatSearch Uninstall v{get_version()} (press ENTER to choose highlighted row)"
         self.filter_term = filter_term.lower()
         self.apps_data = []
         self.selected_app = None
@@ -118,7 +122,7 @@ class FlatUninstallApp(App):
         return apps
 
     async def on_key(self, event: Key) -> None:
-        if event.key == "enter":
+        if event.key == "enter" and not self.read_only:
             table: DataTable = self.query_one("#apps_table", DataTable)
             if table.cursor_row is None:
                 return
@@ -161,3 +165,9 @@ def run_uninstall(filter_term: str = "", assume_yes: bool = False):
                 print("Uninstallation cancelled.")
     else:
         print("No application was selected.")
+
+
+def run_list(filter_term: str = ""):
+    """Run a read-only TUI listing installed Flatpak applications."""
+    app = FlatUninstallApp(filter_term, read_only=True)
+    app.run()
