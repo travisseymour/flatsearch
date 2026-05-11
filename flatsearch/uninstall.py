@@ -38,7 +38,7 @@ class FlatUninstallApp(App):
         super().__init__(**kwargs)
         self.read_only = read_only
         if read_only:
-            self.title = f"FlatSearch List v{get_version()} (press Q or ESC to quit)"
+            self.title = f"FlatSearch List v{get_version()} (press ENTER to launch)"
         else:
             self.title = f"FlatSearch Uninstall v{get_version()} (press ENTER to choose highlighted row)"
         self.filter_term = filter_term.lower()
@@ -122,7 +122,7 @@ class FlatUninstallApp(App):
         return apps
 
     async def on_key(self, event: Key) -> None:
-        if event.key == "enter" and not self.read_only:
+        if event.key == "enter":
             table: DataTable = self.query_one("#apps_table", DataTable)
             if table.cursor_row is None:
                 return
@@ -168,6 +168,17 @@ def run_uninstall(filter_term: str = "", assume_yes: bool = False):
 
 
 def run_list(filter_term: str = ""):
-    """Run a read-only TUI listing installed Flatpak applications."""
+    """Run a TUI listing installed Flatpak applications, with option to launch."""
     app = FlatUninstallApp(filter_term, read_only=True)
     app.run()
+
+    if app.selected_app is not None:
+        _, app_name, app_id, _, _ = app.selected_app
+        try:
+            os.execvp("flatpak", ["flatpak", "run", app_id])
+        except FileNotFoundError:
+            print("Error: flatpak command not found.")
+            sys.exit(1)
+        except Exception as e:
+            print(f"Unexpected error: {e}")
+            sys.exit(1)

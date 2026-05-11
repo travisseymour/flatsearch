@@ -135,7 +135,7 @@ def uninstall(
 def list_apps(
     filter_term: Optional[list[str]] = typer.Argument(None, help="Optional filter to match installed app names or IDs."),
 ) -> None:
-    """List installed Flatpak applications (read-only)."""
+    """List installed Flatpak applications and optionally launch one."""
     filter_str = " ".join(filter_term) if filter_term else ""
     run_list(filter_str)
 
