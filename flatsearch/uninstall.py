@@ -88,7 +88,10 @@ class FlatUninstallApp(App):
                 self.exit(message="No Flatpak applications are currently installed.")
             return
 
-        # Re-number rows after filtering
+        # Sort alphabetically by name (case-insensitive)
+        self.apps_data.sort(key=lambda row: row[1].lower())
+
+        # Re-number rows after filtering/sorting
         for idx, row in enumerate(self.apps_data):
             row[0] = str(idx + 1)
 

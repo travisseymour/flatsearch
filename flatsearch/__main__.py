@@ -123,7 +123,9 @@ class FlatSearchApp(App):
 
 @cli.command()
 def uninstall(
-    filter_term: Optional[list[str]] = typer.Argument(None, help="Optional filter to match installed app names or IDs."),
+    filter_term: Optional[list[str]] = typer.Argument(
+        None, help="Optional filter to match installed app names or IDs."
+    ),
     assumeyes: bool = typer.Option(False, "-y", "--assumeyes", help="Assume 'yes' for uninstallation prompts."),
 ) -> None:
     """Uninstall a Flatpak application via TUI."""
@@ -133,7 +135,9 @@ def uninstall(
 
 @cli.command("list")
 def list_apps(
-    filter_term: Optional[list[str]] = typer.Argument(None, help="Optional filter to match installed app names or IDs."),
+    filter_term: Optional[list[str]] = typer.Argument(
+        None, help="Optional filter to match installed app names or IDs."
+    ),
 ) -> None:
     """List installed Flatpak applications and optionally launch one."""
     filter_str = " ".join(filter_term) if filter_term else ""

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "flatsearch"
-version = "2026.5.10.4"
+version = "2026.5.21.1"
 description="FlatSearch - A Textual-based TUI for searching, installing, listing, launching, and uninstalling Flatpak apps."
 authors = [{ name = "Travis L. Seymour, PhD", email = "nogard@ucsc.edu" }]
 license = { file = "LICENSE" }
